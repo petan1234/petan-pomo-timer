@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ぺたんポモドーロタイマー</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --text-color: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Mochiy Pop One', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-color);
+            text-align: center;
+            overflow: hidden;
+            background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+            animation: gradientBG 15s ease infinite;
+            background-size: 400% 400%;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .timer-container {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 var(--shadow-color);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        #timer {
+            font-size: 10rem;
+            font-weight: 600;
+            text-shadow: 3px 3px 8px var(--shadow-color);
+        }
+
+        #status {
+            font-size: 2rem;
+            height: 3rem;
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-shadow: 2px 2px 5px var(--shadow-color);
+        }
+
+        .controls button {
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-size: 1.2rem;
+            padding: 15px 30px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px 0 var(--shadow-color);
+        }
+
+        .controls button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px 0 var(--shadow-color);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(0);
+        }
+
+        #petan {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 120px;
+            filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.3));
+        }
+        
+        #petan.working {
+            animation: walk 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes walk {
+            from { transform: translateX(-60%); }
+            to { transform: translateX(-40%); }
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .timer-container {
+                padding: 20px;
+                margin: 20px;
+            }
+            #timer {
+                font-size: 5rem;
+            }
+            #status {
+                font-size: 1.5rem;
+            }
+            .controls button {
+                font-size: 1rem;
+                padding: 12px 24px;
+            }
+            #petan {
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="timer-container">
+        <div id="status">作業開始！</div>
+        <div id="timer">25:00</div>
+        <div class="controls">
+            <button id="start">スタート</button>
+            <button id="stop">ストップ</button>
+            <button id="reset">リセット</button>
+        </div>
+    </div>
+
+    <img id="petan" src="petan_sleeping.png" alt="ぺたん">
+
+    <script>
+        const WORK_MINUTES = 25;
+        const BREAK_MINUTES = 5;
+
+        const timerDisplay = document.getElementById('timer');
+        const statusDisplay = document.getElementById('status');
+        const petanImage = document.getElementById('petan');
+        
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const resetButton = document.getElementById('reset');
+
+        let timerId = null;
+        let timeLeft = WORK_MINUTES * 60;
+        let isWorking = true;
+        let isRunning = false;
+
+        const petanWorkingImg = 'petan_working.png';
+        const petanSleepingImg = 'petan_sleeping.png';
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function switchMode() {
+            isWorking = !isWorking;
+            timeLeft = (isWorking ? WORK_MINUTES : BREAK_MINUTES) * 60;
+            
+            if (isWorking) {
+                statusDisplay.textContent = '作業開始！';
+                petanImage.src = petanWorkingImg;
+                petanImage.classList.add('working');
+                document.body.style.animation = 'gradientBG 15s ease infinite';
+            } else {
+                statusDisplay.textContent = '休憩中...';
+                petanImage.src = petanSleepingImg;
+                petanImage.classList.remove('working');
+                document.body.style.animation = 'none';
+                document.body.style.background = '#a8d0e6';
+            }
+            updateTimerDisplay();
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            startButton.disabled = true;
+            stopButton.disabled = false;
+
+            if (isWorking) {
+                petanImage.src = petanWorkingImg;
+                petanImage.classList.add('working');
+            }
+
+            timerId = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft < 0) {
+                    clearInterval(timerId);
+                    switchMode();
+                    startTimer();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (!isRunning) return;
+            clearInterval(timerId);
+            isRunning = false;
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            petanImage.classList.remove('working');
+        }
+
+        function resetTimer() {
+            stopTimer();
+            isWorking = true;
+            timeLeft = WORK_MINUTES * 60;
+            updateTimerDisplay();
+            statusDisplay.textContent = '作業開始！';
+            petanImage.src = petanSleepingImg;
+            petanImage.classList.remove('working');
+            document.body.style.animation = 'gradientBG 15s ease infinite';
+            document.body.style.background = 'linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%)';
+        }
+
+        startButton.addEventListener('click', startTimer);
+        stopButton.addEventListener('click', stopTimer);
+        resetButton.addEventListener('click', resetTimer);
+
+        window.onload = () => {
+            updateTimerDisplay();
+            stopButton.disabled = true;
+        };
+    </script>
+
+</body>
+</html>
